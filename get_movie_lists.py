@@ -36,11 +36,23 @@ def get_playlist_id_from_channel_id(
     return get_list_result_with_fields(collection, filters, field_selectors)[0]
 
 
+def get_video_ids_from_playlist_id(
+        service: Resource,
+        target_playlist_id: str
+) -> List[str]:
+    collection = service.playlistItems()
+    filters = dict(playlistId=target_playlist_id, maxResults='3')
+    field_selectors = ['contentDetails', 'videoId']
+
+    return get_list_result_with_fields(collection, filters, field_selectors)
+
+
 def main() -> None:
     youtube = build_youtube_service()
     target_channel_id = 'UCLhUvJ_wO9hOvv_yYENu4fQ'
     playlist_id = get_playlist_id_from_channel_id(youtube, target_channel_id)
-    print(playlist_id)
+    video_ids = get_video_ids_from_playlist_id(youtube, playlist_id)
+    print(video_ids)
 
 
 if __name__ == '__main__':
