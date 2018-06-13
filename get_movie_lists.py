@@ -2,8 +2,15 @@
 
 from apiclient.discovery import Resource
 from authentication import build_youtube_service
-import json
-from typing import List, Mapping, Sequence, Any
+from typing import List, Mapping, Sequence, NamedTuple, Optional
+import datetime
+
+
+class CaptionInfo(NamedTuple):
+    caption_id: str
+    last_updated: str
+    language: str
+    track_kind: str
 
 
 def get_list_result_with_fields(
@@ -50,10 +57,40 @@ def get_video_ids_from_playlist_id(
     return get_list_result_with_fields(collection, filters, field_selectors)
 
 
-def get_caption_infos_from_video_id(
+def iso_8601_string_to_time(string: str) -> datetime.datetime:
+    accepts_format = 'YYYY-MM-DDThh:mm:ss'
+    time_format = '%Y-%m-%dT%H:%M:%S'
+
+    assert len(string) >= len(accepts_format)
+    string = string[:len(accepts_format)]
+    return datetime.datetime.strptime(string, time_format)
+
+
+def check_caption(
+        caption_info: CaptionInfo,
+        last_updated: datetime.datetime
+) -> bool:
+    # last update time check
+    caption_updated_time = iso_8601_string_to_time(caption_info.last_updated)
+    if caption_updated_time <= last_updated:
+        print('caption not updated!')
+        return False
+    # language check
+    if caption_info.language[:2] != 'ja':
+        print('caption is written in {}!'.format(caption_info.language))
+        return False
+    # auto generated check
+    if caption_info.track_kind == 'ASR':
+        print('caption is ASR!')
+        return False
+    return True
+
+
+def get_caption_info_from_video_id(
         service: Resource,
-        target_video_id: str
-) -> List[Any]:
+        target_video_id: str,
+        last_updated: datetime.datetime
+) -> Optional[CaptionInfo]:
     # caution: this method takes more amount of `quota` than other APIs!
     collection = service.captions()
     filters = dict(videoId=target_video_id)
@@ -62,16 +99,30 @@ def get_caption_infos_from_video_id(
     fields = 'items(id,snippet(lastUpdated,language,trackKind))'
     request = collection.list(part=part, fields=fields, **filters)
     response = request.execute()
-    results = response['items']
-    return results
+    caption_infos = [
+        CaptionInfo(item['id'], item['snippet']['lastUpdated'],
+                    item['snippet']['language'], item['snippet']['trackKind'])
+        for item in response['items']
+    ]
+    # remove unnecessary infos
+    results = [info for info in caption_infos if check_caption(info, last_updated)]
+    if results:
+        assert len(results) == 1
+        return results[0]
+    return None
 
 
 def main() -> None:
     youtube = build_youtube_service()
     target_channel_id = 'UCLhUvJ_wO9hOvv_yYENu4fQ'
     playlist_id = get_playlist_id_from_channel_id(youtube, target_channel_id)
-    video_ids = get_video_ids_from_playlist_id(youtube, playlist_id, num_max_results=1)
-    print(get_caption_infos_from_video_id(youtube, video_ids[0]))
+    video_ids = get_video_ids_from_playlist_id(youtube, playlist_id, num_max_results=30)
+    caption_infos = dict()
+    for video_id in video_ids:
+        caption_info = get_caption_info_from_video_id(youtube, video_id, datetime.datetime.min)
+        if caption_info is not None:
+            caption_infos[video_id] = caption_info
+    print(caption_infos)
 
 
 if __name__ == '__main__':
