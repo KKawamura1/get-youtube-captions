@@ -8,7 +8,7 @@ import datetime
 
 
 class VideoInfo(NamedTuple):
-    video_id: str,
+    video_id: str
     title: str
 
 
