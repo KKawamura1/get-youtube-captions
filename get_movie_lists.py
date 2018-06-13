@@ -3,7 +3,7 @@
 from apiclient.discovery import Resource
 from authentication import build_youtube_service
 import json
-from typing import List, Mapping, Sequence
+from typing import List, Mapping, Sequence, Any
 
 
 def get_list_result_with_fields(
@@ -50,12 +50,28 @@ def get_video_ids_from_playlist_id(
     return get_list_result_with_fields(collection, filters, field_selectors)
 
 
+def get_caption_infos_from_video_id(
+        service: Resource,
+        target_video_id: str
+) -> List[Any]:
+    # caution: this method takes more amount of `quota` than other APIs!
+    collection = service.captions()
+    filters = dict(videoId=target_video_id)
+    parts = ['id', 'snippet']
+    part = ','.join(parts)
+    fields = 'items(id,snippet(lastUpdated,language,trackKind))'
+    request = collection.list(part=part, fields=fields, **filters)
+    response = request.execute()
+    results = response['items']
+    return results
+
+
 def main() -> None:
     youtube = build_youtube_service()
     target_channel_id = 'UCLhUvJ_wO9hOvv_yYENu4fQ'
     playlist_id = get_playlist_id_from_channel_id(youtube, target_channel_id)
-    video_ids = get_video_ids_from_playlist_id(youtube, playlist_id)
-    print(video_ids)
+    video_ids = get_video_ids_from_playlist_id(youtube, playlist_id, num_max_results=1)
+    print(get_caption_infos_from_video_id(youtube, video_ids[0]))
 
 
 if __name__ == '__main__':
