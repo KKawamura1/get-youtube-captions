@@ -38,10 +38,13 @@ def get_playlist_id_from_channel_id(
 
 def get_video_ids_from_playlist_id(
         service: Resource,
-        target_playlist_id: str
+        target_playlist_id: str,
+        num_max_results: int = None
 ) -> List[str]:
     collection = service.playlistItems()
-    filters = dict(playlistId=target_playlist_id, maxResults='3')
+    filters = dict(playlistId=target_playlist_id)
+    if num_max_results is not None:
+        filters['maxResults'] = str(num_max_results)
     field_selectors = ['contentDetails', 'videoId']
 
     return get_list_result_with_fields(collection, filters, field_selectors)
