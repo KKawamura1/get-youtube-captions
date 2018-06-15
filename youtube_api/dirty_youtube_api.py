@@ -28,6 +28,4 @@ class DirtyYoutubeAPI:
             request_captions['name'] = target_caption_name
         captions_vtt_response = requests.get(timedtext_api, params=request_captions)
         captions = webvtt_string_to_parsed(captions_vtt_response.text)
-        print(captions)
-        print(captions[0])
         return captions

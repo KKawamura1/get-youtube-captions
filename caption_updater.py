@@ -3,6 +3,7 @@ from logging import getLogger, Logger
 from typing import Sequence, Optional, Union
 from pathlib import Path
 from tqdm import tqdm
+import pickle
 from youtube_api import YoutubeAPI, DirtyYoutubeAPI, CaptionInfo
 
 
@@ -17,27 +18,15 @@ class CaptionUpdater:
         self._logger = logger
         self._dirty_youtube_api = dirty_youtube_api
 
-    def _iso_8601_string_to_time(
-            self,
-            string: str
-    ) -> datetime.datetime:
-        accepts_format = 'YYYY-MM-DDThh:mm:ss'
-        time_format = '%Y-%m-%dT%H:%M:%S'
-
-        assert len(string) >= len(accepts_format)
-        string = string[:len(accepts_format)]
-        return datetime.datetime.strptime(string, time_format)
-
     def _check_caption(
             self,
             caption_info: CaptionInfo,
             last_updated: datetime.datetime
     ) -> bool:
         # last update time check
-        caption_updated_time = self._iso_8601_string_to_time(caption_info.last_updated)
-        if caption_updated_time <= last_updated:
+        if caption_info.last_updated <= last_updated:
             self._logger.debug('Last update for this caption is {} <= memorized last update is {}'
-                               .format(caption_updated_time, last_updated))
+                               .format(caption_info.last_updated, last_updated))
             return False
         # language check
         if caption_info.language[:2] != 'ja':
@@ -78,11 +67,31 @@ class CaptionUpdater:
         video_ids = ['uoiE4DjJ-UU']
 
         for video_id in tqdm(video_ids):
+            # make a directory for this video
+            video_dir = output_dir / video_id
+            video_dir.mkdir(exist_ok=True)
+            caption_info_path = video_dir / 'caption_info.pkl'
+            video_info_path = video_dir / 'video_info.pkl'
+            captions_path = video_dir / 'captions.pkl'
+
+            if caption_info_path.exists():
+                with caption_info_path.open('rb') as f:
+                    old_caption_info: CaptionInfo = pickle.load(f)
+                last_updated = old_caption_info.last_updated
+            else:
+                last_updated = datetime.datetime.min
             caption_infos = self._youtube_api.get_caption_infos_from_video_id(video_id)
-            caption_info = self._get_valid_caption(caption_infos, datetime.datetime.min)
+            caption_info = self._get_valid_caption(caption_infos, last_updated)
             if caption_info is not None:
                 self._logger.debug('valid caption is found. downloading.')
                 video_info = self._youtube_api.get_video_info_from_video_id(video_id)
                 assert self._dirty_youtube_api is not None
                 captions = self._dirty_youtube_api.download_caption(video_info, caption_info)
-                break
+
+                # write into files
+                with caption_info_path.open('wb') as f:
+                    pickle.dump(caption_info, f)
+                with video_info_path.open('wb') as f:
+                    pickle.dump(video_info, f)
+                with captions_path.open('wb') as f:
+                    pickle.dump(captions, f)

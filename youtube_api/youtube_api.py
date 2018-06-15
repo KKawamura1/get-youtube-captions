@@ -1,6 +1,7 @@
 from apiclient.discovery import Resource
 from typing import Mapping, Sequence, List
 from logging import Logger, getLogger
+import datetime
 from .caption_info import CaptionInfo
 from .video_info import VideoInfo
 
@@ -83,8 +84,20 @@ class YoutubeAPI:
         request = collection.list(part=part, fields=fields, **filters)
         response = request.execute()
         caption_infos = [
-            CaptionInfo(item['id'], item['snippet']['name'], item['snippet']['lastUpdated'],
+            CaptionInfo(item['id'], item['snippet']['name'],
+                        self._iso_8601_string_to_time(item['snippet']['lastUpdated']),
                         item['snippet']['language'], item['snippet']['trackKind'])
             for item in response['items']
         ]
         return caption_infos
+
+    def _iso_8601_string_to_time(
+            self,
+            string: str
+    ) -> datetime.datetime:
+        accepts_format = 'YYYY-MM-DDThh:mm:ss'
+        time_format = '%Y-%m-%dT%H:%M:%S'
+
+        assert len(string) >= len(accepts_format)
+        string = string[:len(accepts_format)]
+        return datetime.datetime.strptime(string, time_format)
