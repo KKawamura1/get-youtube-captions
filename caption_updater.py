@@ -88,8 +88,8 @@ class CaptionUpdater:
                 # write into files
                 video_dir.mkdir(exist_ok=True)
                 with caption_info_path.open('wb') as f:
-                    pickle.dump(caption_info, f)
+                    pickle.dump(caption_info._asdict(), f)
                 with video_info_path.open('wb') as f:
-                    pickle.dump(video_info, f)
+                    pickle.dump(video_info._asdict(), f)
                 with captions_path.open('wb') as f:
-                    pickle.dump(captions, f)
+                    pickle.dump([caption._asdict() for caption in captions], f)
