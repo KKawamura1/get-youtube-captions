@@ -29,21 +29,16 @@ def _timestamp_to_time(timestamp: str) -> datetime.time:
 
 
 def _original_caption_to_my_caption(
-        original_caption: webvtt.Caption,
-        video_info: VideoInfo,
-        caption_info: CaptionInfo
+        original_caption: webvtt.Caption
 ) -> Caption:
-    return Caption(video_info, caption_info,
-                   _timestamp_to_time(original_caption.start),
+    return Caption(_timestamp_to_time(original_caption.start),
                    _timestamp_to_time(original_caption.end),
                    original_caption.text)
 
 
 def webvtt_string_to_parsed(
-        webvtt_string: str,
-        video_info: VideoInfo,
-        caption_info: CaptionInfo
+        webvtt_string: str
 ) -> List[Caption]:
     original_captions = _webvtt_string_to_parsed_original_structure(webvtt_string)
-    return [_original_caption_to_my_caption(caption, video_info, caption_info)
-            for caption in original_captions]
+    return [_original_caption_to_my_caption(original_caption)
+            for original_caption in original_captions]
