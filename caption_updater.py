@@ -3,17 +3,19 @@ from logging import getLogger, Logger
 from typing import Sequence, Optional, Union
 from pathlib import Path
 from tqdm import tqdm
-from youtube_api import YoutubeAPI, CaptionInfo
+from youtube_api import YoutubeAPI, DirtyYoutubeAPI, CaptionInfo
 
 
 class CaptionUpdater:
     def __init__(
             self,
             youtube_api: YoutubeAPI,
+            dirty_youtube_api: DirtyYoutubeAPI = None,
             logger: Logger = getLogger(__name__)
     ) -> None:
         self._youtube_api = youtube_api
         self._logger = logger
+        self._dirty_youtube_api = dirty_youtube_api
 
     def _iso_8601_string_to_time(
             self,
@@ -70,15 +72,17 @@ class CaptionUpdater:
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)
 
-        playlist_id = self._youtube_api.get_playlist_id_from_channel_id(target_channel_id)
-        video_ids = self._youtube_api.get_video_ids_from_playlist_id(playlist_id)
+        # playlist_id = self._youtube_api.get_playlist_id_from_channel_id(target_channel_id)
+        # video_ids = self._youtube_api.get_video_ids_from_playlist_id(playlist_id,
+        #                                                              num_max_results=10)
+        video_ids = ['uoiE4DjJ-UU']
 
         for video_id in tqdm(video_ids):
             caption_infos = self._youtube_api.get_caption_infos_from_video_id(video_id)
             caption_info = self._get_valid_caption(caption_infos, datetime.datetime.min)
             if caption_info is not None:
                 self._logger.debug('valid caption is found. downloading.')
-                caption = self._youtube_api.download_caption(caption_info.caption_id)
                 video_info = self._youtube_api.get_video_info_from_video_id(video_id)
-                print(caption_info, video_info, caption)
+                assert self._dirty_youtube_api is not None
+                captions = self._dirty_youtube_api.download_caption(video_info, caption_info)
                 break

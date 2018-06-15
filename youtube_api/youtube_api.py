@@ -79,20 +79,12 @@ class YoutubeAPI:
         filters = dict(videoId=target_video_id)
         parts = ['id', 'snippet']
         part = ','.join(parts)
-        fields = 'items(id,snippet(lastUpdated,language,trackKind))'
+        fields = 'items(id,snippet(name,lastUpdated,language,trackKind))'
         request = collection.list(part=part, fields=fields, **filters)
         response = request.execute()
         caption_infos = [
-            CaptionInfo(item['id'], item['snippet']['lastUpdated'],
+            CaptionInfo(item['id'], item['snippet']['name'], item['snippet']['lastUpdated'],
                         item['snippet']['language'], item['snippet']['trackKind'])
             for item in response['items']
         ]
         return caption_infos
-
-    def download_caption(
-            self,
-            target_caption_id: str,
-            track_format: str = 'sbv'
-    ) -> str:
-        return self._resource.captions().download(id=target_caption_id,
-                                                  tfmt=track_format)
