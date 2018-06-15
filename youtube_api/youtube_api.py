@@ -23,15 +23,16 @@ class YoutubeAPI:
     ) -> List[str]:
         assert field_selectors
         part = field_selectors[0]
-        fields = '/'.join(['items'] + list(field_selectors))
-        request = collection.list(part=part, fields=fields, **filters)
-        response = request.execute()
         results = []
-        for item in response['items']:
-            tmp = item
-            for field_selector in field_selectors:
-                tmp = tmp[field_selector]
-            results.append(tmp)
+        request = collection.list(part=part, **filters)
+        while request is not None:
+            response = request.execute()
+            for item in response['items']:
+                tmp = item
+                for field_selector in field_selectors:
+                    tmp = tmp[field_selector]
+                results.append(tmp)
+            request = collection.list_next(request, response)
         return results
 
     def get_playlist_id_from_channel_id(
@@ -46,13 +47,11 @@ class YoutubeAPI:
 
     def get_video_ids_from_playlist_id(
             self,
-            target_playlist_id: str,
-            num_max_results: int = None
+            target_playlist_id: str
     ) -> List[str]:
         collection = self._resource.playlistItems()
-        filters = dict(playlistId=target_playlist_id)
-        if num_max_results is not None:
-            filters['maxResults'] = str(num_max_results)
+        max_results_max = 50
+        filters = dict(playlistId=target_playlist_id, maxResults=max_results_max)
         field_selectors = ['contentDetails', 'videoId']
 
         return self._get_list_result_with_fields(collection, filters, field_selectors)

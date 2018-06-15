@@ -61,15 +61,12 @@ class CaptionUpdater:
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)
 
-        # playlist_id = self._youtube_api.get_playlist_id_from_channel_id(target_channel_id)
-        # video_ids = self._youtube_api.get_video_ids_from_playlist_id(playlist_id,
-        #                                                              num_max_results=10)
-        video_ids = ['uoiE4DjJ-UU']
+        playlist_id = self._youtube_api.get_playlist_id_from_channel_id(target_channel_id)
+        video_ids = self._youtube_api.get_video_ids_from_playlist_id(playlist_id)
 
         for video_id in tqdm(video_ids):
             # make a directory for this video
             video_dir = output_dir / video_id
-            video_dir.mkdir(exist_ok=True)
             caption_info_path = video_dir / 'caption_info.pkl'
             video_info_path = video_dir / 'video_info.pkl'
             captions_path = video_dir / 'captions.pkl'
@@ -89,6 +86,7 @@ class CaptionUpdater:
                 captions = self._dirty_youtube_api.download_caption(video_info, caption_info)
 
                 # write into files
+                video_dir.mkdir(exist_ok=True)
                 with caption_info_path.open('wb') as f:
                     pickle.dump(caption_info, f)
                 with video_info_path.open('wb') as f:
