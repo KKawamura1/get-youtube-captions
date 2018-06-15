@@ -8,7 +8,7 @@ from caption_updater import CaptionUpdater
 
 
 def main() -> None:
-    basicConfig(level=DEBUG)
+    basicConfig(level=INFO)
     logger = getLogger(__name__)
     youtube = build_youtube_service()
     youtube_api = YoutubeAPI(youtube, logger.getChild('YoutubeAPI'))
