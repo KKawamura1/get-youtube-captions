@@ -7,8 +7,7 @@ import MeCab
 import jaconv
 import re
 
-from movie_and_captions.youtube_api import Caption
-from movie_and_captions.augmented_caption import AugmentedCaption
+from movie_and_captions.models import Caption, AugmentedCaption
 
 
 class CaptionWithMecab:

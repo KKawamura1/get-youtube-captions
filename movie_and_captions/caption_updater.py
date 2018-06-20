@@ -5,7 +5,8 @@ from pathlib import Path
 from tqdm import tqdm
 import pickle
 
-from movie_and_captions.youtube_api import YoutubeAPI, DirtyYoutubeAPI, CaptionInfo
+from movie_and_captions.youtube_api import YoutubeAPI, DirtyYoutubeAPI
+from movie_and_captions.models import CaptionInfo
 
 
 class CaptionUpdater:
