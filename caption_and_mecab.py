@@ -119,7 +119,7 @@ class CaptionWithMecab:
         caption_dir = Path(caption_dir).resolve()
         assert caption_dir.is_dir()
         for p in tqdm(caption_dir.glob('**/captions.pkl')):
-            write_to = p.parent / 'augment_captions.pkl'
+            write_to = p.parent / 'augmented_captions.pkl'
             with p.open('rb') as f:
                 caption_asdicts = pickle.load(f)
                 captions: List[Caption] = [Caption(**caption_asdict)
@@ -128,6 +128,6 @@ class CaptionWithMecab:
             for caption in captions:
                 augmented_caption = self.augment_caption(caption)
                 if augmented_caption is not None:
-                    augmented_caption_asdicts.append(augmented_caption._asdict)
+                    augmented_caption_asdicts.append(augmented_caption._asdict())
             with write_to.open('wb') as f:
                 pickle.dump(augmented_caption_asdicts, f)
