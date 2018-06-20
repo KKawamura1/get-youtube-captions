@@ -1,0 +1,124 @@
+from typing import Union, Optional, List
+from pathlib import Path
+from logging import getLogger, Logger
+import pickle
+from tqdm import tqdm
+import MeCab
+import jaconv
+import re
+
+from youtube_api import Caption
+from augmented_caption import AugmentedCaption
+
+
+class CaptionWithMecab:
+    def __init__(
+            self,
+            logger: Logger = getLogger(__name__)
+    ) -> None:
+        self._logger = logger
+        self._mecab_yomi = MeCab.Tagger('-Oyomi')
+        self._mecab_tagger = MeCab.Tagger()
+        # match with the strings that starts and ends with one of the remove / save parens
+        parens_map = dict(removing=[('(', ')'), ('（', '）'), ('[', ']'), ('<', '>')],
+                          saving=[('「', '」'), ('\'', '\''), ('"', '"')])
+        regexps = {key: (r'['
+                         + ''.join([paren[0] for paren in parens])
+                         + r'](.+?)['
+                         + ''.join([paren[1] for paren in parens])
+                         + r']')
+                   for key, parens in parens_map.items()}
+        self._removing_parens_regex = re.compile(regexps['removing'])
+        self._saving_parens_regex = re.compile(regexps['saving'])
+        self._short_title_length_range = dict(min=8, max=20)
+        # see: http://miner.hatenablog.com/entry/323
+        self._not_selfstanding_poses = set([
+            11,  # あ'ったらしい'
+            12,  # 使い'づらい'
+            13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  # 助詞
+            32, 33,  # 接尾動詞
+            50, 51, 52, 53, 54, 55, 56, 57, 58, 59,  # 接尾名詞
+        ])
+        self._not_ending_poses = set([
+            27, 28, 29, 30,  # 接続系接頭詞
+            62, 63, 64, 65, 66, 67,  # 非自立語幹
+        ])
+
+    def augment_caption(self, caption: Caption) -> Optional[AugmentedCaption]:
+        # remove parentheses
+        text = caption.content
+        while True:
+            # search minimal parenthesis pair
+            match = self._removing_parens_regex.search(text)
+            if match is None:
+                break
+            text = text[:match.start()] + text[match.end():]
+            if len(text) == 0:
+                return None
+        # save parenthesis
+        match = self._saving_parens_regex.search(text)
+        if match is not None:
+            text_candidate = match.group(0)
+            # take larger one
+            # ex. 'シロ「こんにちは！」' -> 'こんにちは！'
+            # ex. '最高に「ハイ！」ってやつだ' -> (same as before)
+            if len(text_candidate) >= len(text) / 2:
+                text = text_candidate
+        text = text.replace('\n', '')
+        if len(text) == 0:
+            return None
+        # get yomi
+        yomi_katakana = self._mecab_yomi.parse(text).strip()
+        yomi = jaconv.kata2hira(yomi_katakana)
+        # make short title
+        if len(text) <= self._short_title_length_range['min']:
+            short_title = text
+        else:
+            mecab_node = self._mecab_tagger.parseToNode(text)
+            text_ends = 0
+            previous_continuous_flag = False
+            while mecab_node is not None:
+                check_length = True
+                feature_posid = mecab_node.posid
+                # if the pos tag is not self-standing one (自立語), continue
+                if feature_posid in self._not_selfstanding_poses:
+                    check_length = False
+                # if the previous tag is continuous one (継続語), continue
+                if previous_continuous_flag:
+                    previous_continuous_flag = False
+                    check_length = False
+                if feature_posid in self._not_ending_poses:
+                    previous_continuous_flag = True
+                # check length
+                text_ends_will_be = text_ends + len(mecab_node.surface)
+                if check_length and text_ends_will_be >= self._short_title_length_range['min']:
+                    break
+                if text_ends_will_be >= self._short_title_length_range['max']:
+                    break
+                text_ends = text_ends_will_be
+                mecab_node = mecab_node.next
+            short_title = text[:text_ends]
+        augmented_caption = AugmentedCaption(short_title=short_title, yomi=yomi,
+                                             **caption._asdict())
+        self._logger.debug('convert {} to {}'.format(caption, augmented_caption))
+        return augmented_caption
+
+    def do(
+            self,
+            caption_dir: Union[str, Path]
+    ) -> None:
+        caption_dir = Path(caption_dir).resolve()
+        assert caption_dir.is_dir()
+        for p in tqdm(caption_dir.glob('**/captions.pkl')):
+            write_to = p.parent / 'augment_captions.pkl'
+            with p.open('rb') as f:
+                caption_asdicts = pickle.load(f)
+                captions: List[Caption] = [Caption(**caption_asdict)
+                                           for caption_asdict in caption_asdicts]
+            augmented_caption_asdicts = []
+            for caption in captions:
+                augmented_caption = self.augment_caption(caption)
+                if augmented_caption is not None:
+                    augmented_caption_asdicts.append(augmented_caption._asdict)
+            with write_to.open('wb') as f:
+                pickle.dump(augmented_caption_asdicts, f)
