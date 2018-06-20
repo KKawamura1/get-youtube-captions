@@ -5,7 +5,7 @@ from logging import getLogger, basicConfig, DEBUG, INFO, WARNING
 from authentication import build_youtube_service
 from youtube_api import YoutubeAPI, DirtyYoutubeAPI
 from caption_updater import CaptionUpdater
-from caption_and_mecab import CaptionWithMecab
+from caption_with_mecab import CaptionWithMecab
 
 
 def main() -> None:
