@@ -2,9 +2,7 @@ import webvtt
 from typing import List
 import datetime
 import re
-from .caption import Caption
-from .video_info import VideoInfo
-from .caption_info import CaptionInfo
+from movie_and_captions.models import Caption, CaptionInfo, VideoInfo
 
 
 TIMESTAMP_PATTERN = re.compile('^(\d+)?:?(\d{2}):(\d{2})[.,](\d{3})$')

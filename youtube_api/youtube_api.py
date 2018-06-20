@@ -2,8 +2,8 @@ from apiclient.discovery import Resource
 from typing import Mapping, Sequence, List
 from logging import Logger, getLogger
 import datetime
-from .caption_info import CaptionInfo
-from .video_info import VideoInfo
+
+from movie_and_captions.models import CaptionInfo, VideoInfo
 
 
 class YoutubeAPI:

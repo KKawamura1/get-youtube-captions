@@ -4,7 +4,8 @@ from typing import Sequence, Optional, Union
 from pathlib import Path
 from tqdm import tqdm
 import pickle
-from youtube_api import YoutubeAPI, DirtyYoutubeAPI, CaptionInfo
+
+from movie_and_captions.youtube_api import YoutubeAPI, DirtyYoutubeAPI, CaptionInfo
 
 
 class CaptionUpdater:

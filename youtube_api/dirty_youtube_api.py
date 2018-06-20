@@ -1,10 +1,8 @@
 from logging import getLogger, Logger
-from typing import Optional, List
+from typing import List
 import requests
-import webvtt
-from .video_info import VideoInfo
-from .caption_info import CaptionInfo
-from .caption import Caption
+
+from ..models import VideoInfo, CaptionInfo, Caption
 from .treat_webvtt import webvtt_string_to_parsed
 
 

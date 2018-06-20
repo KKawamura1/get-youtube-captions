@@ -2,10 +2,10 @@
 
 from pathlib import Path
 from logging import getLogger, basicConfig, DEBUG, INFO, WARNING
-from authentication import build_youtube_service
-from youtube_api import YoutubeAPI, DirtyYoutubeAPI
-from caption_updater import CaptionUpdater
-from caption_with_mecab import CaptionWithMecab
+from movie_and_captions.authentication import build_youtube_service
+from movie_and_captions.youtube_api import YoutubeAPI, DirtyYoutubeAPI
+from movie_and_captions.caption_updater import CaptionUpdater
+from movie_and_captions.caption_with_mecab import CaptionWithMecab
 
 
 def main() -> None:
