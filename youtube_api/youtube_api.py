@@ -50,7 +50,7 @@ class YoutubeAPI:
             target_playlist_id: str
     ) -> List[str]:
         collection = self._resource.playlistItems()
-        max_results_max = 50
+        max_results_max = '50'
         filters = dict(playlistId=target_playlist_id, maxResults=max_results_max)
         field_selectors = ['contentDetails', 'videoId']
 
