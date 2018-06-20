@@ -19,8 +19,12 @@ class CaptionWithMecab:
         self._logger = logger
         self._mecab_yomi = MeCab.Tagger('-Oyomi')
         self._mecab_tagger = MeCab.Tagger()
+        # bad know-how to prevent UnicodeDecodeError
+        # see: https://qiita.com/kasajei/items/0805b433f363f1dba785
+        self._mecab_yomi.parse('')
+        self._mecab_tagger.parse('')
         # match with the strings that starts and ends with one of the remove / save parens
-        parens_map = dict(removing=[('(', ')'), ('（', '）'), ('[', ']'), ('<', '>')],
+        parens_map = dict(removing=[('\(', '\)'), ('（', '）'), ('\[', '\]'), ('<', '>')],
                           saving=[('「', '」'), ('\'', '\''), ('"', '"')])
         regexps = {key: (r'['
                          + ''.join([paren[0] for paren in parens])
@@ -30,13 +34,17 @@ class CaptionWithMecab:
                    for key, parens in parens_map.items()}
         self._removing_parens_regex = re.compile(regexps['removing'])
         self._saving_parens_regex = re.compile(regexps['saving'])
-        self._short_title_length_range = dict(min=8, max=20)
+        self._short_title_length_range = dict(min=12, max=28)
         # see: http://miner.hatenablog.com/entry/323
         self._not_selfstanding_poses = set([
             11,  # あ'ったらしい'
             12,  # 使い'づらい'
-            13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  # 助詞
-            32, 33,  # 接尾動詞
+            17,  # そう'かしら'
+            19,  # 思い'けむ'
+            22,  # A'か'B
+            23,  # A'とか'B
+            25,  # 思い'ます'
+            32, 33,  # 行って'しまう'
             50, 51, 52, 53, 54, 55, 56, 57, 58, 59,  # 接尾名詞
         ])
         self._not_ending_poses = set([
@@ -58,7 +66,7 @@ class CaptionWithMecab:
         # save parenthesis
         match = self._saving_parens_regex.search(text)
         if match is not None:
-            text_candidate = match.group(0)
+            text_candidate = match.group(1)
             # take larger one
             # ex. 'シロ「こんにちは！」' -> 'こんにちは！'
             # ex. '最高に「ハイ！」ってやつだ' -> (same as before)
@@ -74,10 +82,10 @@ class CaptionWithMecab:
         if len(text) <= self._short_title_length_range['min']:
             short_title = text
         else:
-            mecab_node = self._mecab_tagger.parseToNode(text)
+            mecab_node = self._mecab_tagger.parseToNode(text).next
             text_ends = 0
             previous_continuous_flag = False
-            while mecab_node is not None:
+            while mecab_node is not None and mecab_node.next is not None:
                 check_length = True
                 feature_posid = mecab_node.posid
                 # if the pos tag is not self-standing one (自立語), continue
@@ -100,7 +108,8 @@ class CaptionWithMecab:
             short_title = text[:text_ends]
         augmented_caption = AugmentedCaption(short_title=short_title, yomi=yomi,
                                              **caption._asdict())
-        self._logger.debug('convert {} to {}'.format(caption, augmented_caption))
+        if len(short_title) < len(caption.content):
+            self._logger.debug('convert {} to {}'.format(caption.content, short_title))
         return augmented_caption
 
     def do(
