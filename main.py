@@ -9,7 +9,7 @@ from caption_and_mecab import CaptionWithMecab
 
 
 def main() -> None:
-    basicConfig(level=INFO)
+    basicConfig(level=WARNING)
     logger = getLogger(__name__)
     youtube = build_youtube_service()
     youtube_api = YoutubeAPI(youtube, logger.getChild('YoutubeAPI'))
