@@ -73,7 +73,7 @@ class CaptionUpdater:
 
             if caption_info_path.exists():
                 with caption_info_path.open('rb') as f:
-                    old_caption_info: CaptionInfo = pickle.load(f)
+                    old_caption_info: CaptionInfo = CaptionInfo(**pickle.load(f))
                 last_updated = old_caption_info.last_updated
             else:
                 last_updated = datetime.datetime.min
