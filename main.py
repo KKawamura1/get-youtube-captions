@@ -30,9 +30,8 @@ def main(args: List[str] = None) -> None:
         params = parser.parse_args(args)
     old_data: Data
     if params.old_data is not None:
-        old_data_bin = params.old_data.read()
         # note: this is BAD because pickle.load is not secure for outside binary file!
-        old_data = pickle.load(old_data_bin)
+        old_data = pickle.load(params.old_data)
     else:
         old_data = []
     target_channel_id: str = params.target_channel_id
