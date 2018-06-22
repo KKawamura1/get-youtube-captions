@@ -126,6 +126,7 @@ class CaptionWithMecab:
                 augmented_caption = self.augment_caption(caption)
                 if augmented_caption is not None:
                     augmented_caption_asdicts.append(augmented_caption._asdict())
-            new_data.append(dict(augmented_captions=augmented_caption_asdicts,
-                                 **video_datum))
+            new_data_dict = dict(**video_datum)
+            new_data_dict['augmented_captions'] = augmented_caption_asdicts
+            new_data.append(new_data_dict)
         return new_data
