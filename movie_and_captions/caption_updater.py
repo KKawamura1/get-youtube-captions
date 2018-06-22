@@ -1,13 +1,13 @@
 import datetime
 from logging import getLogger, Logger
-from typing import Sequence, Optional, Union
+from typing import Sequence, Optional, Union, Optional
 from pathlib import Path
 from tqdm import tqdm
 import pickle
 
 from movie_and_captions.youtube_api import YoutubeAPI, DirtyYoutubeAPI
 from movie_and_captions.models import CaptionInfo
-from movie_and_captions.data import Data
+from movie_and_captions.data import Data, VideoDatum
 
 
 class CaptionUpdater:
@@ -64,17 +64,19 @@ class CaptionUpdater:
         playlist_id = self._youtube_api.get_playlist_id_from_channel_id(target_channel_id)
         video_ids = self._youtube_api.get_video_ids_from_playlist_id(playlist_id)
 
-        video_id_to_data_id = {old_datum['video_info']['video_id']: data_id  # type: ignore
-                               for data_id, old_datum in enumerate(old_data)}
+        video_id_to_data = {old_datum['video_info']['video_id']: old_datum  # type: ignore
+                            for old_datum in old_data}
 
         new_data: Data = []
         for video_id in tqdm(video_ids):
             # find if the specified video exists in the old_data
-            if video_id in video_id_to_data_id:
-                old_datum = old_data[video_id_to_data_id[video_id]]
+            old_datum: Optional[VideoDatum]
+            if video_id in video_id_to_data:
+                old_datum = video_id_to_data[video_id]
                 old_caption_info = CaptionInfo(**old_datum['caption_info'])  # type: ignore
                 last_updated = old_caption_info.last_updated
             else:
+                old_datum = None
                 last_updated = datetime.datetime.min
             caption_infos = self._youtube_api.get_caption_infos_from_video_id(video_id)
             caption_info = self._get_valid_caption(caption_infos, last_updated)
@@ -95,4 +97,7 @@ class CaptionUpdater:
                     caption_info=caption_info_asdict,
                     video_info=video_info_asdict
                 ))
+            else:
+                if old_datum is not None:
+                    new_data.append(old_datum)
         return new_data

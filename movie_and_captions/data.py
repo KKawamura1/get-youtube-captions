@@ -7,6 +7,6 @@ from typing import List, Dict, Any, Dict, Union
 # Info: Dict[str, Any] or List[Dict[str, Any]]
 
 _Info = Union[Dict[str, Any], List[Dict[str, Any]]]
-_VideoDatum = Dict[str, _Info]
+VideoDatum = Dict[str, _Info]
 
-Data = List[_VideoDatum]
+Data = List[VideoDatum]
