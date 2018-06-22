@@ -8,6 +8,7 @@ import jaconv
 import re
 
 from movie_and_captions.models import Caption, AugmentedCaption
+from movie_and_captions.data import Data
 
 
 class CaptionWithMecab:
@@ -113,20 +114,18 @@ class CaptionWithMecab:
 
     def do(
             self,
-            caption_dir: Union[str, Path]
-    ) -> None:
-        caption_dir = Path(caption_dir).resolve()
-        assert caption_dir.is_dir()
-        for p in tqdm(caption_dir.glob('**/captions.pkl')):
-            write_to = p.parent / 'augmented_captions.pkl'
-            with p.open('rb') as f:
-                caption_asdicts = pickle.load(f)
-                captions: List[Caption] = [Caption(**caption_asdict)
-                                           for caption_asdict in caption_asdicts]
+            old_data: Data
+    ) -> Data:
+        new_data = []
+        for i, video_datum in enumerate(tqdm(old_data)):
+            caption_asdicts = video_datum['captions']
+            captions: List[Caption] = [Caption(**caption_asdict)
+                                       for caption_asdict in caption_asdicts]
             augmented_caption_asdicts = []
             for caption in captions:
                 augmented_caption = self.augment_caption(caption)
                 if augmented_caption is not None:
                     augmented_caption_asdicts.append(augmented_caption._asdict())
-            with write_to.open('wb') as f:
-                pickle.dump(augmented_caption_asdicts, f)
+            new_data.append(dict(augmented_captions=augmented_caption_asdicts,
+                                 **video_datum))
+        return new_data

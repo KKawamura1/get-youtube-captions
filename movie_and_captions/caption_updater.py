@@ -7,6 +7,7 @@ import pickle
 
 from movie_and_captions.youtube_api import YoutubeAPI, DirtyYoutubeAPI
 from movie_and_captions.models import CaptionInfo
+from movie_and_captions.data import Data
 
 
 class CaptionUpdater:
@@ -58,24 +59,20 @@ class CaptionUpdater:
     def do(
             self,
             target_channel_id: str,
-            output_dir: Union[Path, str]
-    ) -> None:
-        output_dir = Path(output_dir)
-        output_dir.mkdir(exist_ok=True)
-
+            old_data: Data
+    ) -> Data:
         playlist_id = self._youtube_api.get_playlist_id_from_channel_id(target_channel_id)
         video_ids = self._youtube_api.get_video_ids_from_playlist_id(playlist_id)
 
-        for video_id in tqdm(video_ids):
-            # make a directory for this video
-            video_dir = output_dir / video_id
-            caption_info_path = video_dir / 'caption_info.pkl'
-            video_info_path = video_dir / 'video_info.pkl'
-            captions_path = video_dir / 'captions.pkl'
+        video_id_to_data_id = {old_datum['video_info']['video_id']: data_id  # type: ignore
+                               for data_id, old_datum in enumerate(old_data)}
 
-            if caption_info_path.exists():
-                with caption_info_path.open('rb') as f:
-                    old_caption_info: CaptionInfo = CaptionInfo(**pickle.load(f))
+        new_data: Data = []
+        for video_id in tqdm(video_ids):
+            # find if the specified video exists in the old_data
+            if video_id in video_id_to_data_id:
+                old_datum = old_data[video_id_to_data_id[video_id]]
+                old_caption_info = CaptionInfo(**old_datum['caption_info'])  # type: ignore
                 last_updated = old_caption_info.last_updated
             else:
                 last_updated = datetime.datetime.min
@@ -87,11 +84,15 @@ class CaptionUpdater:
                 assert self._dirty_youtube_api is not None
                 captions = self._dirty_youtube_api.download_caption(video_info, caption_info)
 
-                # write into files
-                video_dir.mkdir(exist_ok=True)
-                with caption_info_path.open('wb') as f:
-                    pickle.dump(caption_info._asdict(), f)
-                with video_info_path.open('wb') as f:
-                    pickle.dump(video_info._asdict(), f)
-                with captions_path.open('wb') as f:
-                    pickle.dump([caption._asdict() for caption in captions], f)
+                # convert into dicts
+                caption_info_asdict = caption_info._asdict()
+                video_info_asdict = video_info._asdict()
+                captions_asdicts = [caption._asdict() for caption in captions]
+
+                # add new captions
+                new_data.append(dict(
+                    captions=captions_asdicts,
+                    caption_info=caption_info_asdict,
+                    video_info=video_info_asdict
+                ))
+        return new_data
