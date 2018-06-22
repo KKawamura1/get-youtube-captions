@@ -1,7 +1,9 @@
+from apiclient.http import HttpRequest, HttpError
 from apiclient.discovery import Resource
-from typing import Mapping, Sequence, List
+from typing import Mapping, Sequence, List, Any
 from logging import Logger, getLogger
 import datetime
+import sys
 
 from movie_and_captions.models import CaptionInfo, VideoInfo
 
@@ -15,6 +17,22 @@ class YoutubeAPI:
         self._resource = resource
         self._logger = logger
 
+    def _execute_with_repeat(
+            self,
+            request: HttpRequest,
+            retry_num: int = 10
+    ) -> Any:
+        for i in range(retry_num):
+            try:
+                response = request.execute()
+                break
+            except HttpError:
+                self._logger.warning('An http error occurs during execution, retrying...')
+                self._logger.warning('Error information: {}'.format(sys.exc_info()))
+        else:
+            raise HttpError('http request failed after {} trying.'.format(retry_num))
+        return response
+
     def _get_list_result_with_fields(
             self,
             collection: Resource,
@@ -26,7 +44,7 @@ class YoutubeAPI:
         results = []
         request = collection.list(part=part, **filters)
         while request is not None:
-            response = request.execute()
+            response = self._execute_with_repeat(request)
             for item in response['items']:
                 tmp = item
                 for field_selector in field_selectors:
@@ -66,7 +84,7 @@ class YoutubeAPI:
         part = ','.join(parts)
         fields = 'items(snippet(title))'
         request = collection.list(part=part, fields=fields, **filters)
-        response = request.execute()['items'][0]
+        response = self._execute_with_repeat(request)['items'][0]
         video_info = VideoInfo(target_video_id, response['snippet']['title'])
         return video_info
 
@@ -81,7 +99,7 @@ class YoutubeAPI:
         part = ','.join(parts)
         fields = 'items(id,snippet(name,lastUpdated,language,trackKind))'
         request = collection.list(part=part, fields=fields, **filters)
-        response = request.execute()
+        response = self._execute_with_repeat(request)
         caption_infos = [
             CaptionInfo(item['id'], item['snippet']['name'],
                         self._iso_8601_string_to_time(item['snippet']['lastUpdated']),
