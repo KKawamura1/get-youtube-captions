@@ -82,10 +82,12 @@ class YoutubeAPI:
         filters = dict(id=target_video_id)
         parts = ['snippet']
         part = ','.join(parts)
-        fields = 'items(snippet(title))'
+        fields = 'items(snippet(title,publishedAt))'
         request = collection.list(part=part, fields=fields, **filters)
         response = self._execute_with_repeat(request)['items'][0]
-        video_info = VideoInfo(target_video_id, response['snippet']['title'])
+        title = response['snippet']['title']
+        published = self._iso_8601_string_to_time(response['snippet']['publishedAt'])
+        video_info = VideoInfo(target_video_id, title, published)
         return video_info
 
     def get_caption_infos_from_video_id(
