@@ -77,7 +77,7 @@ class CaptionUpdater:
                 last_updated = old_caption_info.last_updated
             else:
                 old_datum = None
-                last_updated = datetime.datetime.min
+                last_updated = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
             caption_infos = self._youtube_api.get_caption_infos_from_video_id(video_id)
             caption_info = self._get_valid_caption(caption_infos, last_updated)
             if caption_info is not None:

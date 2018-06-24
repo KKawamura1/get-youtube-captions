@@ -119,4 +119,6 @@ class YoutubeAPI:
 
         assert len(string) >= len(accepts_format)
         string = string[:len(accepts_format)]
-        return datetime.datetime.strptime(string, time_format)
+        time_wo_tz = datetime.datetime.strptime(string, time_format)
+        return datetime.datetime.combine(time_wo_tz.date(), time_wo_tz.time(),
+                                         datetime.timezone.utc)
