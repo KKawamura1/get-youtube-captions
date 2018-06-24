@@ -26,12 +26,10 @@ class CaptionWithMecab:
         # match with the strings that starts and ends with one of the remove / save parens
         parens_map = dict(removing=[('\(', '\)'), ('（', '）'), ('\[', '\]'), ('<', '>')],
                           saving=[('「', '」'), ('\'', '\''), ('"', '"')])
-        regexps = {key: (r'['
-                         + ''.join([paren[0] for paren in parens])
-                         + r'](.+?)['
-                         + ''.join([paren[1] for paren in parens])
-                         + r']')
-                   for key, parens in parens_map.items()}
+        parens_lefts_rights = {key: [''.join([paren[i] for paren in parens]) for i in range(2)]
+                               for key, parens in parens_map.items()}
+        regexps = {key: (fr'[{parens[0]}]([^{parens[0]}{parens[1]}]*)[{parens[1]}]')
+                   for key, parens in parens_lefts_rights.items()}
         self._removing_parens_regex = re.compile(regexps['removing'])
         self._saving_parens_regex = re.compile(regexps['saving'])
         self._short_title_length_range = dict(min=12, max=28)
@@ -55,6 +53,7 @@ class CaptionWithMecab:
     def augment_caption(self, caption: Caption) -> Optional[AugmentedCaption]:
         # remove parentheses
         text = caption.content
+        text = text.replace('\n', '')
         while True:
             # search minimal parenthesis pair
             match = self._removing_parens_regex.search(text)
@@ -72,7 +71,6 @@ class CaptionWithMecab:
             # ex. '最高に「ハイ！」ってやつだ' -> (same as before)
             if len(text_candidate) >= len(text) / 2:
                 text = text_candidate
-        text = text.replace('\n', '')
         if len(text) == 0:
             return None
         # get yomi
