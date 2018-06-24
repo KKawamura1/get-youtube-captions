@@ -24,7 +24,7 @@ class CaptionWithMecab:
         self._mecab_yomi.parse('')
         self._mecab_tagger.parse('')
         # match with the strings that starts and ends with one of the remove / save parens
-        parens_map = dict(removing=[('\(', '\)'), ('（', '）'), ('\[', '\]'), ('<', '>')],
+        parens_map = dict(removing=[('\(', '\)'), ('（', '）'), ('<', '>')],
                           saving=[('「', '」'), ('\'', '\''), ('"', '"')])
         parens_lefts_rights = {key: [''.join([paren[i] for paren in parens]) for i in range(2)]
                                for key, parens in parens_map.items()}
