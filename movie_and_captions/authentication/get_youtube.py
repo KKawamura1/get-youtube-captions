@@ -1,4 +1,5 @@
-import apiclient.discovery
+import googleapiclient
+import googleapiclient.discovery
 import os.path
 
 
@@ -9,10 +10,10 @@ def _read_api_key() -> str:
     return api_key
 
 
-def build_youtube_service() -> apiclient.discovery.Resource:
+def build_youtube_service() -> googleapiclient.discovery.Resource:
     api_service_name = 'youtube'
     api_version = 'v3'
     api_key = _read_api_key()
-    service = apiclient.discovery.build(api_service_name, api_version, developerKey=api_key,
+    service = googleapiclient.discovery.build(api_service_name, api_version, developerKey=api_key,
                                         cache_discovery=False)
     return service
